@@ -1,0 +1,55 @@
+使用说明
+
+线上地址：
+前端：https://liu-sys-ops.github.io/charlotte-page/
+后端：https://honghuang.pythonanywhere.com/api/todos
+
+线上后端使用 PythonAnywhere 免费账号，前端使用 GitHub Pages。config.js 已指向线上后端，日常直接打开前端网址即可。
+
+一、本地运行（推荐用本地服务器，不要直接双击 index.html）
+
+1. 先启动后端：
+   双击 todo-api\start_api.bat，看到 Running on http://127.0.0.1:5000 即成功。
+2. 再启动前端服务器：
+   在“新建文件夹”里打开 PowerShell，执行：
+   python -m http.server 8080
+   如果系统没有 python，用项目里配置好的 Python 也可以。
+3. 浏览器打开：
+   http://127.0.0.1:8080/index.html#todo
+4. 这时“待办清单”页会通过 fetch 请求后端，不再使用写死的 JS 数组。
+
+二、文件说明
+
+- index.html：页面结构、样式和标签页
+- config.js：后端地址配置，部署时只改这里
+- app.js：请求接口、渲染列表、loading/empty/error 三态、新增和删除
+- demo.js：原来的 data.json 抓包练习，保留不动
+- bgm.mp3、data.json、images：页面资源和抓包素材
+- 必须保持以上文件和文件夹在同一目录。
+
+三、三种状态
+
+- loading：请求发出后显示“加载中...”，至少显示约 300ms，避免一闪而过
+- empty：接口返回空数组时显示“暂无任务，先添加一条吧”
+- error：请求失败时显示原因和“重试”按钮，不会只留下白屏
+
+四、新增和删除
+
+在“待办清单”页输入任务，点“新增”，列表会自动重新请求接口并刷新。
+每条任务右侧有“删除”，删除成功后同样自动刷新。
+刷新浏览器（F5）后数据仍在，因为数据存在后端的 todos.db 中。
+
+五、部署时必须改的地方
+
+1. 后端部署到 Render / Railway 后，拿到 HTTPS 地址，例如：
+   https://todo-api-xxxx.onrender.com
+2. 打开 config.js，把 API_BASE_URL 改成这个地址，末尾不要加斜杠。
+3. 把 index.html、config.js、app.js、demo.js、data.json、bgm.mp3、images 一起上传到 GitHub Pages。
+4. 打开线上页面后按 Ctrl + F5 强制刷新，避免浏览器缓存旧的 config.js。
+
+六、常见问题
+
+- 页面显示“网络请求失败”：先确认后端地址能打开，再确认后端已加 CORS 响应头。
+- GitHub Pages 是 HTTPS，后端不能写 http://，否则会被浏览器当成混合内容拦截。
+- 改了 config.js 但页面没变化：按 Ctrl + F5，或检查 GitHub Pages 是否真的上传成功。
+- 后端免费实例休眠后第一次打开会慢，等几十秒再点“重试”。

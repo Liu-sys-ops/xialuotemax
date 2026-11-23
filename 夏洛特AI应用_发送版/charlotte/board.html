@@ -1,0 +1,397 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nao Tomori · 流光留言板</title>
+<style>
+  :root{
+    --ink:#f7f3ff;
+    --muted:#b9b2d9;
+    --pink:#ff7ec7;
+    --violet:#8f7bff;
+    --cyan:#62d9ff;
+    --orange:#ffbf7a;
+    --panel:rgba(17,10,38,.48);
+    --line:rgba(255,255,255,.22);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;max-width:100%;overflow-x:hidden}
+  body{
+    min-height:100vh;color:var(--ink);
+    font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:#09051a url("images/nao/city.jpg") center/cover no-repeat;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      linear-gradient(90deg,rgba(7,3,24,.52) 0%,rgba(14,5,34,.16) 38%,rgba(12,4,28,.10) 62%,rgba(7,3,24,.50) 100%),
+      linear-gradient(180deg,rgba(7,3,24,.34),rgba(7,3,24,0) 28%,rgba(7,3,24,.26) 100%);
+  }
+  body::after{
+    content:"";position:fixed;width:520px;height:520px;right:-160px;top:-120px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,85,200,.34),transparent 65%);
+    filter:blur(22px);pointer-events:none;z-index:0;animation:drift 12s ease-in-out infinite alternate;
+  }
+  @keyframes drift{to{transform:translate3d(-30px,30px,0) scale(1.08)}}
+  .page{position:relative;z-index:2;max-width:1460px;margin:0 auto;padding:20px 20px 30px}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 16px;border-radius:16px;
+    background:rgba(14,8,32,.42);border:1px solid rgba(255,255,255,.22);
+    backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);
+    box-shadow:0 18px 50px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.28)}
+  .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink)}
+  .brand-mark{width:35px;height:35px;border-radius:11px;display:grid;place-items:center;
+    background:linear-gradient(145deg,rgba(255,126,199,.85),rgba(143,123,255,.7));
+    box-shadow:0 0 24px rgba(255,126,199,.35),inset 0 1px 0 rgba(255,255,255,.7);font-weight:900}
+  .brand b{display:block;font-family:Georgia,serif;font-size:14px;letter-spacing:.14em}
+  .brand small{display:block;font-size:10px;color:var(--muted);letter-spacing:.12em;margin-top:2px}
+  .nav{display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+  .nav a{color:#ddd6f5;text-decoration:none;font-size:12px;padding:7px 10px;border-radius:8px;transition:.2s}
+  .nav a:hover{background:rgba(255,255,255,.12);color:#fff}
+  .nav .hot{color:#fff;background:linear-gradient(135deg,rgba(255,126,199,.45),rgba(143,123,255,.45));border:1px solid rgba(255,255,255,.28)}
+
+  .intro{padding:26px 6px 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+  .intro h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:clamp(30px,4vw,52px);line-height:1;letter-spacing:-.02em;
+    text-shadow:0 0 30px rgba(255,126,199,.35),0 0 60px rgba(98,217,255,.2)}
+  .intro h1 em{font-style:normal;background:linear-gradient(100deg,#ff9bd8,#b39bff 45%,#7fe4ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .intro p{margin:8px 0 0;color:var(--muted);font-size:12px;letter-spacing:.08em}
+  .live{display:flex;align-items:center;gap:7px;color:#e9ddff;font-size:11px;white-space:nowrap;padding:8px 11px;border-radius:99px;background:rgba(14,8,32,.42);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(14px)}
+  .live i{width:6px;height:6px;border-radius:50%;background:#70ffd2;box-shadow:0 0 12px #70ffd2;animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.35;transform:scale(.75)}}
+
+  .board-shell{position:relative;padding:1px;overflow:hidden;border-radius:28px;background:transparent;box-shadow:0 30px 90px rgba(0,0,0,.4),0 0 70px rgba(143,123,255,.18)}
+  .board-shell::before{content:"";position:absolute;inset:0;z-index:3;border-radius:28px;padding:1px;pointer-events:none;background:linear-gradient(120deg,rgba(255,126,199,.95),rgba(143,123,255,.8),rgba(98,217,255,.9),rgba(255,191,122,.8),rgba(255,126,199,.95));background-size:300% 300%;animation:borderFlow 14s linear infinite;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+  @keyframes borderFlow{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+  .board-shell::after{content:"";position:absolute;inset:1px;border-radius:27px;pointer-events:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 -1px 0 rgba(143,123,255,.2)}
+  .board{position:relative;border-radius:27px;overflow:hidden;background:rgba(9,5,22,.06)}
+  .board::before{display:none;content:"";position:absolute;inset:-18%;z-index:0;pointer-events:none;background:
+    radial-gradient(ellipse at 18% 32%,rgba(255,126,199,.28),transparent 48%),
+    radial-gradient(ellipse at 82% 22%,rgba(98,217,255,.24),transparent 50%),
+    radial-gradient(ellipse at 62% 82%,rgba(143,123,255,.24),transparent 52%),
+    radial-gradient(ellipse at 38% 76%,rgba(255,191,122,.16),transparent 50%),
+    radial-gradient(ellipse at 50% 48%,rgba(255,255,255,.06),transparent 58%);
+    filter:blur(18px);animation:meshFloat 20s ease-in-out infinite alternate;transform:translate3d(0,0,0) scale(1.02)}
+  .board::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:
+    radial-gradient(ellipse 62% 82% at 8% 18%,rgba(255,116,190,.48),transparent 64%),
+    radial-gradient(ellipse 62% 82% at 94% 14%,rgba(82,205,255,.40),transparent 64%),
+    radial-gradient(ellipse 68% 86% at 78% 86%,rgba(139,106,255,.46),transparent 66%),
+    radial-gradient(ellipse 58% 80% at 22% 86%,rgba(255,178,112,.30),transparent 62%),
+    radial-gradient(ellipse 42% 60% at 52% 52%,rgba(255,168,215,.16),transparent 70%),
+    linear-gradient(108deg,rgba(255,126,199,.16),rgba(255,191,122,.07) 20%,rgba(143,123,255,.13) 50%,rgba(98,217,255,.15) 76%,rgba(255,126,199,.12));
+    filter:blur(1px)}
+  @keyframes meshFloat{0%{transform:translate3d(-2%,0,0) scale(1.02)}100%{transform:translate3d(2%,-1%,0) scale(1.07)}}
+  .layout{position:relative;z-index:2;display:grid;grid-template-columns:310px minmax(180px,1fr) 380px;gap:18px;align-items:stretch;min-height:660px;padding:18px}
+
+  .panel{position:relative;border-radius:18px;background:rgba(19,11,42,.32);border:1px solid rgba(255,255,255,.26);backdrop-filter:blur(13px) saturate(145%);-webkit-backdrop-filter:blur(13px) saturate(145%);box-shadow:0 18px 40px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.2);overflow:hidden}
+  .panel::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.18),transparent 32%,transparent 68%,rgba(255,126,199,.12));pointer-events:none}
+  .panel-inner{position:relative;z-index:1;padding:18px}
+  .panel h2{margin:0;font-size:15px;letter-spacing:.12em;color:#f6efff;font-weight:700}
+  .panel .sub{margin:6px 0 0;color:var(--muted);font-size:11px;line-height:1.6}
+  .compose{display:flex;flex-direction:column;min-height:100%}
+  .compose .panel-inner{display:flex;flex-direction:column;height:100%}
+  .field{margin-top:14px}
+  .field label{display:block;font-size:11px;color:#c9c0e7;margin-bottom:7px;letter-spacing:.08em}
+  .field input,.field textarea{width:100%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.09);color:#fff;border-radius:10px;padding:11px 12px;font:inherit;font-size:13px;outline:none;transition:.2s}
+  .field input::placeholder,.field textarea::placeholder{color:rgba(226,220,250,.45)}
+  .field input:focus,.field textarea:focus{border-color:rgba(255,126,199,.7);box-shadow:0 0 0 3px rgba(255,126,199,.12),0 0 26px rgba(255,126,199,.12);background:rgba(255,255,255,.12)}
+  .field textarea{min-height:168px;resize:vertical;line-height:1.75}
+  .form-foot{margin-top:auto;padding-top:15px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .form-status{font-size:11px;color:#d9c9f0;min-height:16px;margin:8px 0 0}
+  .form-status.error{color:#ff9bad}
+  .actions{display:flex;gap:8px;padding-top:12px}
+  .btn{border:1px solid rgba(255,255,255,.24);border-radius:9px;padding:10px 16px;font:inherit;font-size:12px;cursor:pointer;transition:.22s;color:#fff;background:rgba(255,255,255,.09)}
+  .btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.16)}
+  .btn-clear{color:#d8c8ed}
+  .btn-submit{flex:1;border:0;background:linear-gradient(115deg,#ff6dbb,#926dff 60%,#62d9ff);background-size:200% 200%;box-shadow:0 8px 26px rgba(183,90,201,.28);font-weight:700;letter-spacing:.08em}
+  .btn-submit:hover{background-position:100% 50%}
+  .btn-submit:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+  .center{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:8px 4px 18px;min-height:100%;pointer-events:none}
+  .center .quote{width:100%;padding:20px 6px 0;text-align:center;color:rgba(245,237,255,.8);text-shadow:0 2px 20px rgba(0,0,0,.7)}
+  .center .quote b{display:block;font-family:Georgia,serif;font-size:clamp(28px,3vw,44px);font-weight:400;letter-spacing:.03em;line-height:1.1;color:#fff}
+  .center .quote span{display:block;margin-top:8px;font-size:11px;letter-spacing:.3em;color:#d8b8ff}
+  .center .vertical{position:absolute;top:8px;right:0;writing-mode:vertical-rl;letter-spacing:.35em;color:rgba(255,255,255,.44);font-size:11px;text-shadow:0 0 18px rgba(255,126,199,.45)}
+
+  .stream{display:flex;flex-direction:column;min-height:100%}
+  .stream .panel-inner{display:flex;flex-direction:column;height:100%;min-height:0}
+  .stream-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .count{font-size:10px;color:#d9c9f0;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16)}
+  .message-list{display:flex;flex-direction:column;gap:10px;margin-top:14px;overflow:auto;padding-right:2px;min-height:0;max-height:530px}
+  .message-list::-webkit-scrollbar{width:5px}
+  .message-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:99px}
+  .message-card{position:relative;border-radius:12px;padding:11px 12px;background:linear-gradient(120deg,rgba(74,100,222,.70),rgba(138,86,196,.64) 52%,rgba(255,111,175,.64));border:1px solid rgba(255,255,255,.26);box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 24px rgba(143,123,255,.12),inset 0 1px 0 rgba(255,255,255,.24);overflow:hidden;animation:cardIn .4s ease both}
+  .message-card:nth-child(3n+2){background:linear-gradient(120deg,rgba(112,83,210,.70),rgba(174,86,156,.64) 55%,rgba(255,148,104,.56))}
+  .message-card:nth-child(3n){background:linear-gradient(120deg,rgba(45,130,190,.68),rgba(94,82,195,.64) 55%,rgba(240,96,177,.64))}
+  .message-card::after{content:"";position:absolute;top:-40%;left:-30%;width:40%;height:180%;transform:rotate(24deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:sheen 6s ease-in-out infinite}
+  @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes sheen{0%,55%{left:-45%}80%,100%{left:120%}}
+  .msg-top{position:relative;z-index:1;display:flex;align-items:center;gap:8px}
+  .avatar{width:27px;height:27px;border-radius:50%;flex:0 0 27px;display:grid;place-items:center;background:linear-gradient(145deg,#bfffe9,#8ea7ff);color:#26244d;font-weight:900;font-size:12px;box-shadow:inset 0 1px 0 #fff}
+  .msg-name{font-size:12px;font-weight:700;color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .msg-date{margin-left:auto;font-size:10px;color:rgba(255,255,255,.62);white-space:nowrap}
+  .msg-content{position:relative;z-index:1;margin:7px 0 0 35px;font-size:12px;line-height:1.65;color:rgba(255,255,255,.92);overflow-wrap:anywhere;white-space:pre-wrap}
+  .empty{padding:40px 12px;text-align:center;color:var(--muted);font-size:12px;line-height:1.8}
+  .empty b{display:block;color:#fff;font-size:16px;margin-bottom:6px}
+  .loading{padding:36px 12px;text-align:center;color:var(--muted);font-size:12px}
+  .loading i{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.65);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:7px}
+  .error-state{color:#ffadb8}
+  footer{margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:rgba(240,233,255,.55);font-size:10px;letter-spacing:.04em}
+  footer a{color:#d9c9f0;text-decoration:none}
+
+  @media (max-width:1080px){
+    .layout{grid-template-columns:280px minmax(80px,1fr) 340px;gap:12px;padding:12px;min-height:620px}
+    .panel-inner{padding:15px}
+    .center .quote{display:none}
+    .message-list{max-height:490px}
+  }
+  @media (max-width:860px){
+    .layout{grid-template-columns:1fr 1fr;min-height:0}
+    .center{display:none}
+    .message-list{max-height:420px}
+  }
+  @media (max-width:680px){
+    .page{padding:12px 10px 24px}
+    .topbar{padding:9px 11px;border-radius:13px;align-items:flex-start;flex-direction:column;gap:8px}
+    .nav{width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start}
+    .nav a{white-space:nowrap}
+    .intro{padding:18px 2px 10px;align-items:flex-start;flex-direction:column;gap:10px}
+    .intro h1{font-size:clamp(29px,9vw,40px)}
+    .live{display:none}
+    .layout{grid-template-columns:1fr;padding:9px;gap:10px}
+    .panel-inner{padding:14px}
+    .field textarea{min-height:120px}
+    .message-list{max-height:390px}
+    .message-card{padding:10px}
+    .msg-content{margin-left:34px;font-size:11.5px}
+    footer{flex-direction:column;align-items:flex-start;gap:4px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="brand-mark">N</span>
+      <span><b>NAO / MESSAGE</b><small>STARLIGHT BOARD</small></span>
+    </a>
+    <nav class="nav">
+      <a href="/">首页</a>
+      <a href="/app">AI 待办</a>
+      <a href="#board" class="hot">流光留言板</a>
+    </nav>
+  </header>
+
+  <section class="intro">
+    <div>
+      <h1>写下此刻的<em>一句话</em></h1>
+      <p>NAO TOMORI · 夏洛特 · 二次元流光留言空间</p>
+    </div>
+    <div class="live"><i></i> BOARD ONLINE</div>
+  </section>
+
+  <main id="board" class="board-shell">
+    <div class="board">
+      <div class="layout">
+
+        <section class="panel compose">
+          <div class="panel-inner">
+            <h2>留言建议</h2>
+            <p class="sub">留下名字和想说的话，它会出现在右侧的流光卡片里。</p>
+            <form id="messageForm">
+              <div class="field">
+                <label for="nameInput">你的名字</label>
+                <input id="nameInput" type="text" maxlength="20" placeholder="匿名也可以" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="contentInput">留言内容</label>
+                <textarea id="contentInput" maxlength="500" placeholder="写下此刻的心情、祝福，或者一句想对奈绪说的话..." required></textarea>
+              </div>
+              <p id="formStatus" class="form-status" role="status"></p>
+              <div class="form-foot">
+                <div class="actions">
+                  <button id="clearBtn" class="btn btn-clear" type="button">清空</button>
+                  <button id="submitBtn" class="btn btn-submit" type="submit">发送留言 →</button>
+                </div>
+                <span style="font-size:10px;color:#a99cc8">最多 500 字</span>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="center" aria-hidden="true">
+          <span class="vertical">ナオトモリ · CHARLOTTE</span>
+          <div class="quote">
+            <b>“把此刻留下，<br>让光替你记得。”</b>
+            <span>MESSAGE IN THE NEON</span>
+          </div>
+        </section>
+
+        <section class="panel stream">
+          <div class="panel-inner">
+            <div class="stream-head">
+              <h2>留言板</h2>
+              <span id="messageCount" class="count">0 条</span>
+            </div>
+            <p class="sub">最新留言会出现在最上面。</p>
+            <div id="messageList" class="message-list" aria-live="polite">
+              <div class="loading"><i></i>加载留言中...</div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>Nao Tomori · Charlotte · 个人学习页面</span>
+    <span>流光留言板 · <a href="/app">AI 工作台</a></span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const form = document.getElementById('messageForm');
+  const nameInput = document.getElementById('nameInput');
+  const contentInput = document.getElementById('contentInput');
+  const submitBtn = document.getElementById('submitBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const formStatus = document.getElementById('formStatus');
+  const listEl = document.getElementById('messageList');
+  const countEl = document.getElementById('messageCount');
+
+  function setStatus(text, isError) {
+    formStatus.textContent = text || '';
+    formStatus.className = 'form-status' + (isError ? ' error' : '');
+  }
+
+  function formatDate(value) {
+    if (!value) return '';
+    return value.slice(5, 16);
+  }
+
+  function render(messages) {
+    listEl.innerHTML = '';
+    countEl.textContent = messages.length + ' 条';
+
+    if (!messages.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.innerHTML = '<b>还没有留言</b>写下第一句，让它亮起来。';
+      listEl.appendChild(empty);
+      return;
+    }
+
+    messages.forEach(function (msg) {
+      const card = document.createElement('article');
+      card.className = 'message-card';
+
+      const top = document.createElement('div');
+      top.className = 'msg-top';
+
+      const avatar = document.createElement('span');
+      avatar.className = 'avatar';
+      avatar.textContent = (msg.name || '匿').slice(0, 1);
+
+      const name = document.createElement('span');
+      name.className = 'msg-name';
+      name.textContent = msg.name || '匿名';
+
+      const date = document.createElement('span');
+      date.className = 'msg-date';
+      date.textContent = formatDate(msg.created_at);
+
+      const content = document.createElement('p');
+      content.className = 'msg-content';
+      content.textContent = msg.content;
+
+      top.appendChild(avatar);
+      top.appendChild(name);
+      top.appendChild(date);
+      card.appendChild(top);
+      card.appendChild(content);
+      listEl.appendChild(card);
+    });
+  }
+
+  async function loadMessages() {
+    listEl.innerHTML = '<div class="loading"><i></i>加载留言中...</div>';
+    try {
+      const res = await fetch('/api/messages?limit=30', { cache: 'no-store' });
+      const body = await res.json();
+      if (!res.ok || body.code !== 0) throw new Error(body.msg || '加载失败');
+      render(body.data || []);
+    } catch (err) {
+      listEl.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'empty error-state';
+      box.textContent = '留言加载失败：' + (err.message || '网络错误');
+      listEl.appendChild(box);
+    }
+  }
+
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const content = contentInput.value.trim();
+    const name = nameInput.value.trim();
+
+    if (!content) {
+      setStatus('留言内容不能为空', true);
+      contentInput.focus();
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '发送中...';
+    setStatus('');
+
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, content: content })
+      });
+      const body = await res.json();
+      if (!res.ok || body.code !== 0) throw new Error(body.msg || '发送失败');
+
+      contentInput.value = '';
+      nameInput.value = '';
+      setStatus('留言已发送，谢谢你的光。');
+      await loadMessages();
+    } catch (err) {
+      setStatus('发送失败：' + (err.message || '网络错误'), true);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '发送留言 →';
+    }
+  });
+
+  clearBtn.addEventListener('click', function () {
+    nameInput.value = '';
+    contentInput.value = '';
+    setStatus('');
+    contentInput.focus();
+  });
+
+  loadMessages();
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
