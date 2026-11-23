@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星尘待办 · 待办清单 + AI 对话</title>
+<style>
+﻿:root {
+  --ink: #20243d;
+  --blue: #4c5f9e;
+  --blue-deep: #34457d;
+  --muted: #6f7590;
+  --line: rgba(255, 255, 255, 0.65);
+  --danger: #a33a4a;
+  --ok: #166534;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  background:
+    radial-gradient(circle at 8% 6%, rgba(255, 176, 209, 0.62), transparent 30%),
+    radial-gradient(circle at 94% 4%, rgba(151, 190, 255, 0.6), transparent 32%),
+    radial-gradient(circle at 76% 66%, rgba(255, 205, 230, 0.42), transparent 36%),
+    linear-gradient(135deg, #ffe8f2 0%, #f3e9ff 34%, #e3efff 68%, #d6ecff 100%);
+  background-attachment: fixed;
+}
+
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 26px 18px 36px;
+}
+
+header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: 1px;
+  color: var(--blue-deep);
+}
+
+.brand p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chip {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: #3b4270;
+  white-space: nowrap;
+  backdrop-filter: blur(12px);
+}
+
+.chip strong { font-size: 15px; }
+
+.app {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(90, 86, 150, 0.14);
+  backdrop-filter: blur(20px) saturate(150%);
+  overflow: hidden;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.card-head h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #2e3868;
+}
+
+.card-head .sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.card-tools {
+  display: flex;
+  gap: 6px;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+
+input[type="text"], textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.55);
+  outline: none;
+}
+
+input[type="text"]:focus, textarea:focus {
+  border-color: #9b86d8;
+  box-shadow: 0 0 0 3px rgba(155, 134, 216, 0.15);
+}
+
+.btn {
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 15px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4c5f9e, #7867b8);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(75, 80, 150, 0.18);
+}
+
+.btn-primary:hover { background: linear-gradient(135deg, #3d4f8b, #6655a6); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--line);
+  color: var(--blue-deep);
+}
+
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.6); }
+
+.btn-icon {
+  border: none;
+  background: transparent;
+  color: var(--blue);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.btn-icon:hover { background: rgba(76, 95, 158, 0.1); }
+.btn-icon.danger { color: var(--danger); }
+.btn-icon.danger:hover { background: rgba(163, 58, 74, 0.1); }
+
+.todo-form {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px 4px;
+}
+
+.message {
+  min-height: 18px;
+  margin: 0;
+  padding: 0 16px;
+  font-size: 12px;
+  color: var(--blue);
+}
+
+.message.error { color: var(--danger); }
+
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 16px 16px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.todo-item:last-child { border-bottom: none; }
+
+.todo-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--blue);
+  flex: none;
+}
+
+.todo-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.todo-title {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.todo-item.done .todo-title {
+  color: #8b90a7;
+  text-decoration: line-through;
+}
+
+.todo-date {
+  font-size: 11px;
+  color: #8b90a7;
+}
+
+.todo-actions {
+  display: flex;
+  gap: 2px;
+  flex: none;
+}
+
+.edit-input {
+  font-size: 15px;
+  padding: 6px 9px;
+}
+
+.empty {
+  padding: 26px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.chat-card {
+  display: flex;
+  flex-direction: column;
+  height: 660px;
+}
+
+.chat-log {
+  flex: 1;
+  overflow: auto;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.welcome {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #4d5372;
+}
+
+.msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.msg.user { justify-content: flex-end; }
+
+.bubble {
+  max-width: 82%;
+  padding: 10px 13px;
+  border-radius: 12px;
+  line-height: 1.7;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.user .bubble {
+  background: linear-gradient(135deg, #4c5f9e, #7867b8);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.assistant .bubble {
+  background: rgba(255, 255, 255, 0.66);
+  color: #252a45;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-bottom-left-radius: 4px;
+}
+
+.msg-del {
+  border: none;
+  background: transparent;
+  color: #9aa0b8;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  opacity: 0.55;
+}
+
+.msg-del:hover {
+  opacity: 1;
+  color: var(--danger);
+  background: rgba(163, 58, 74, 0.08);
+}
+
+.typing {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 6px 4px;
+}
+
+.composer {
+  border-top: 1px solid var(--line);
+  padding: 10px 12px 12px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.status {
+  min-height: 17px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.status.error { color: var(--danger); }
+
+.input-row {
+  display: flex;
+  gap: 7px;
+  align-items: flex-end;
+}
+
+textarea {
+  resize: none;
+  min-height: 44px;
+  max-height: 110px;
+}
+
+.hint {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+  font-size: 11px;
+  color: #8a90a7;
+}
+
+footer {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 12px;
+  color: #7b809b;
+}
+
+dialog {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  box-shadow: 0 30px 70px rgba(60, 60, 120, 0.28);
+}
+
+dialog::backdrop { background: rgba(40, 40, 80, 0.28); }
+
+.dialog-body { padding: 18px; }
+.dialog-body h3 { margin: 0 0 6px; font-size: 17px; color: var(--blue-deep); }
+.dialog-body p { margin: 0 0 14px; font-size: 12px; color: var(--muted); line-height: 1.7; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; color: var(--blue-deep); margin-bottom: 5px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .chat-card { height: 560px; }
+  header { flex-direction: column; align-items: flex-start; }
+  .stats { justify-content: flex-start; }
+}
+
+@media (max-width: 640px) {
+  .shell { padding: 16px 10px 30px; }
+  .brand h1 { font-size: 25px; }
+  .brand p { font-size: 12px; line-height: 1.6; }
+  .card-head { padding: 12px 13px; }
+  .todo-list { max-height: 360px; padding: 4px 12px 12px; }
+  .search-row, .todo-form { padding-left: 12px; padding-right: 12px; }
+  .bubble { max-width: 88%; font-size: 13px; }
+  .chat-card { height: 540px; }
+}
+
+
+</style>
+</head>
+<body>
+<main class="shell">
+  <header>
+    <div class="brand">
+      <h1>星尘待办</h1>
+      <p>纯前端版本：待办和对话都存在浏览器里，直接放到 GitHub Pages 就能用。</p>
+    </div>
+    <div class="stats">
+      <span class="chip">全部 <strong id="statAll">0</strong></span>
+      <span class="chip">待完成 <strong id="statOpen">0</strong></span>
+      <span class="chip">已完成 <strong id="statDone">0</strong></span>
+    </div>
+  </header>
+
+  <div class="app">
+    <section class="card">
+      <div class="card-head">
+        <h2>待办清单</h2>
+        <span class="sub" id="todoHint">本地保存</span>
+      </div>
+
+      <div class="search-row">
+        <input id="searchInput" type="text" placeholder="搜索任务，输入关键词实时筛选" autocomplete="off">
+        <button id="clearSearch" class="btn btn-ghost" type="button">清空</button>
+      </div>
+
+      <form id="todoForm" class="todo-form">
+        <input id="todoInput" type="text" maxlength="100" placeholder="输入任务，回车或点新增" autocomplete="off">
+        <button id="todoAddBtn" class="btn btn-primary" type="submit">新增</button>
+      </form>
+
+      <p id="todoMessage" class="message" role="status"></p>
+      <ul id="todoList" class="todo-list"></ul>
+      <div id="todoEmpty" class="empty">还没有任务，先加一条吧。</div>
+    </section>
+
+    <section class="card chat-card">
+      <div class="card-head">
+        <h2>星尘助手</h2>
+        <div class="card-tools">
+          <button id="settingsBtn" class="btn btn-ghost" type="button">设置</button>
+          <button id="clearChat" class="btn btn-ghost" type="button">清空对话</button>
+        </div>
+      </div>
+
+      <div id="chatLog" class="chat-log"></div>
+
+      <div class="composer">
+        <p id="chatStatus" class="status" role="status"></p>
+        <div class="input-row">
+          <textarea id="chatInput" rows="1" maxlength="2000" placeholder="例如：加一条 明天交实验报告"></textarea>
+          <button id="sendBtn" class="btn btn-primary" type="button">发送</button>
+        </div>
+        <div class="hint"><span>默认使用本地助手，可在「设置」里接入自己的 AI 接口。</span><span>Enter 发送，Shift + Enter 换行</span></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>纯 HTML / CSS / JavaScript · 数据保存在 localStorage</footer>
+</main>
+
+<dialog id="settingsDialog">
+  <div class="dialog-body">
+    <h3>AI 接口设置（可选）</h3>
+    <p>留空就使用本地助手。填写后，对话会直接调用你的 OpenAI 兼容接口。<br>Key 只保存在本机浏览器里，不会上传到 GitHub。</p>
+
+    <div class="field">
+      <label for="aiBase">接口地址（Base URL）</label>
+      <input id="aiBase" type="text" placeholder="https://open.bigmodel.cn/api/paas/v4" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="aiModel">模型名</label>
+      <input id="aiModel" type="text" placeholder="glm-4-flash" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="aiKey">API Key</label>
+      <input id="aiKey" type="password" placeholder="留空则使用本地助手" autocomplete="off">
+    </div>
+
+    <div class="dialog-actions">
+      <button id="aiClear" class="btn btn-ghost" type="button">清除</button>
+      <button id="aiClose" class="btn btn-ghost" type="button">取消</button>
+      <button id="aiSave" class="btn btn-primary" type="button">保存</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function (global) {
+  "use strict";
+
+  var TODOS_KEY = "stardust.todos.v1";
+  var MSGS_KEY = "stardust.messages.v1";
+  var MAX_TITLE = 100;
+  var MAX_MSG = 2000;
+
+  function read(key, fallback) {
+    try {
+      var raw = global.localStorage.getItem(key);
+      if (!raw) return fallback;
+      var val = JSON.parse(raw);
+      return Array.isArray(val) ? val : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function write(key, val) {
+    try {
+      global.localStorage.setItem(key, JSON.stringify(val));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function nextId(items) {
+    return items.reduce(function (max, item) {
+      return Math.max(max, item.id || 0);
+    }, 0) + 1;
+  }
+
+  function now() {
+    return new Date().toISOString();
+  }
+
+  var todos = read(TODOS_KEY, []);
+  var messages = read(MSGS_KEY, []);
+
+  function findTodo(id) {
+    for (var i = 0; i < todos.length; i++) {
+      if (todos[i].id === id) return todos[i];
+    }
+    return null;
+  }
+
+  var Store = {
+    listTodos: function (query) {
+      var q = (query || "").trim().toLowerCase();
+      if (!q) return todos.slice();
+      return todos.filter(function (item) {
+        return item.title.toLowerCase().indexOf(q) !== -1;
+      });
+    },
+
+    addTodo: function (title) {
+      title = (title || "").trim();
+      if (!title) return null;
+      if (title.length > MAX_TITLE) title = title.slice(0, MAX_TITLE);
+      var item = {
+        id: nextId(todos),
+        title: title,
+        done: false,
+        created_at: now(),
+        updated_at: now()
+      };
+      todos.push(item);
+      write(TODOS_KEY, todos);
+      return item;
+    },
+
+    updateTodo: function (id, patch) {
+      var item = findTodo(id);
+      if (!item) return null;
+      if (patch && typeof patch.title === "string") {
+        var title = patch.title.trim();
+        if (!title) return null;
+        item.title = title.slice(0, MAX_TITLE);
+      }
+      if (patch && typeof patch.done === "boolean") {
+        item.done = patch.done;
+      }
+      item.updated_at = now();
+      write(TODOS_KEY, todos);
+      return item;
+    },
+
+    removeTodo: function (id) {
+      var before = todos.length;
+      todos = todos.filter(function (item) { return item.id !== id; });
+      write(TODOS_KEY, todos);
+      return todos.length !== before;
+    },
+
+    toggleTodo: function (id) {
+      var item = findTodo(id);
+      if (!item) return null;
+      item.done = !item.done;
+      item.updated_at = now();
+      write(TODOS_KEY, todos);
+      return item;
+    },
+
+    stats: function () {
+      var done = todos.filter(function (item) { return item.done; }).length;
+      return { all: todos.length, done: done, open: todos.length - done };
+    },
+
+    listMessages: function () {
+      return messages.slice();
+    },
+
+    addMessage: function (role, content) {
+      content = (content || "").trim();
+      if (!content) return null;
+      if (content.length > MAX_MSG) content = content.slice(0, MAX_MSG);
+      var item = {
+        id: nextId(messages),
+        role: role === "user" ? "user" : "assistant",
+        content: content,
+        created_at: now()
+      };
+      messages.push(item);
+      write(MSGS_KEY, messages);
+      return item;
+    },
+
+    removeMessage: function (id) {
+      var before = messages.length;
+      messages = messages.filter(function (item) { return item.id !== id; });
+      write(MSGS_KEY, messages);
+      return messages.length !== before;
+    },
+
+    clearMessages: function () {
+      messages = [];
+      write(MSGS_KEY, messages);
+    },
+
+    clearAll: function () {
+      todos = [];
+      messages = [];
+      write(TODOS_KEY, todos);
+      write(MSGS_KEY, messages);
+    }
+  };
+
+  global.Store = Store;
+})(window);
+
+</script>
+<script>
+(function (global) {
+  "use strict";
+
+  var ADD_RE = /^(?:帮我)?(?:加一条|新增|添加|记一下|记一条|记个|提醒我|加个|加一个)/;
+  var QUERY_RE = /^(?:查一下|查询|搜索|搜一下|看看|有哪些|列出|找一下)/;
+  var DELETE_RE = /^(?:删除|删掉|移除|去掉)/;
+  var DONE_RE = /^(?:完成|搞定|标记完成|做完了)/;
+
+  function clean(text) {
+    return text.replace(/^[：:，,、\s]+/, "").trim();
+  }
+
+  function formatList(items) {
+    return items.map(function (item, index) {
+      return (index + 1) + ". " + item.title + (item.done ? "（已完成）" : "");
+    }).join("\n");
+  }
+
+  var HELP = [
+    "我是本地演示助手，可以帮你管理左边的待办：",
+    "· 加一条 明天交实验报告",
+    "· 查一下 实验",
+    "· 完成 明天交实验报告",
+    "· 删除 明天交实验报告",
+    "也可以直接在左边用输入框、搜索框和编辑按钮操作。"
+  ].join("\n");
+
+  function reply(text) {
+    var input = (text || "").trim();
+    if (!input) return "说点什么吧，比如：加一条 明天交实验报告";
+
+    var match = input.match(ADD_RE);
+    if (match) {
+      var title = clean(input.slice(match[0].length));
+      if (!title) return "要加什么任务？例如：加一条 明天交实验报告";
+      var created = global.Store.addTodo(title);
+      if (!created) return "添加失败，请再试一次。";
+      return "已添加：\n· " + created.title + "\n左边清单已经更新。";
+    }
+
+    match = input.match(QUERY_RE);
+    if (match) {
+      var keyword = clean(input.slice(match[0].length));
+      var found = global.Store.listTodos(keyword);
+      if (!found.length) {
+        return keyword
+          ? "没有找到标题里包含「" + keyword + "」的任务。"
+          : "现在还没有任务，可以让我加一条。";
+      }
+      return "找到 " + found.length + " 条" + (keyword ? "包含「" + keyword + "」的" : "") + "任务：\n" + formatList(found);
+    }
+
+    match = input.match(DELETE_RE);
+    if (match) {
+      var key = clean(input.slice(match[0].length));
+      if (!key) return "要删除哪一条？请带上任务标题里的关键词。";
+      var targets = global.Store.listTodos(key);
+      if (!targets.length) return "没有找到包含「" + key + "」的任务。";
+      var removed = targets[0];
+      global.Store.removeTodo(removed.id);
+      return "已删除：\n· " + removed.title;
+    }
+
+    match = input.match(DONE_RE);
+    if (match) {
+      var doneKey = clean(input.slice(match[0].length));
+      if (!doneKey) return "要完成哪一条？请带上任务标题里的关键词。";
+      var pending = global.Store.listTodos(doneKey).filter(function (item) {
+        return !item.done;
+      });
+      if (!pending.length) return "没有找到未完成、且包含「" + doneKey + "」的任务。";
+      global.Store.updateTodo(pending[0].id, { done: true });
+      return "已完成：\n· " + pending[0].title;
+    }
+
+    return HELP;
+  }
+
+  global.Assistant = { reply: reply };
+})(window);
+
+</script>
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var els = {
+    statAll: $("statAll"),
+    statOpen: $("statOpen"),
+    statDone: $("statDone"),
+    searchInput: $("searchInput"),
+    clearSearch: $("clearSearch"),
+    todoForm: $("todoForm"),
+    todoInput: $("todoInput"),
+    todoAddBtn: $("todoAddBtn"),
+    todoMessage: $("todoMessage"),
+    todoList: $("todoList"),
+    todoEmpty: $("todoEmpty"),
+    todoHint: $("todoHint"),
+    chatLog: $("chatLog"),
+    chatInput: $("chatInput"),
+    sendBtn: $("sendBtn"),
+    chatStatus: $("chatStatus"),
+    clearChat: $("clearChat"),
+    settingsBtn: $("settingsBtn"),
+    settingsDialog: $("settingsDialog"),
+    aiBase: $("aiBase"),
+    aiKey: $("aiKey"),
+    aiModel: $("aiModel"),
+    aiSave: $("aiSave"),
+    aiClear: $("aiClear"),
+    aiClose: $("aiClose")
+  };
+
+  var AI_KEYS = {
+    base: "stardust.ai.base",
+    key: "stardust.ai.key",
+    model: "stardust.ai.model"
+  };
+
+  var query = "";
+  var editingId = null;
+  var sending = false;
+
+  function getSetting(key) {
+    try { return localStorage.getItem(key) || ""; } catch (e) { return ""; }
+  }
+
+  function setSetting(key, value) {
+    try {
+      if (value) localStorage.setItem(key, value);
+      else localStorage.removeItem(key);
+    } catch (e) { /* 忽略隐私模式下的写入失败 */ }
+  }
+
+  function aiConfig() {
+    return {
+      base: getSetting(AI_KEYS.base),
+      key: getSetting(AI_KEYS.key),
+      model: getSetting(AI_KEYS.model)
+    };
+  }
+
+  function pad(n) { return n < 10 ? "0" + n : String(n); }
+
+  function formatDate(iso) {
+    if (!iso) return "";
+    var date = new Date(iso);
+    if (isNaN(date.getTime())) return "";
+    return (date.getMonth() + 1) + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes());
+  }
+
+  function setTodoMessage(text, isError) {
+    els.todoMessage.textContent = text || "";
+    els.todoMessage.className = "message" + (isError ? " error" : "");
+  }
+
+  function setChatStatus(text, isError) {
+    els.chatStatus.textContent = text || "";
+    els.chatStatus.className = "status" + (isError ? " error" : "");
+  }
+
+  function scrollChatBottom() {
+    els.chatLog.scrollTop = els.chatLog.scrollHeight;
+  }
+
+  /* ------------------------------------------------------------------ 待办 */
+
+  function todoNode(item) {
+    var li = document.createElement("li");
+    li.className = "todo-item" + (item.done ? " done" : "");
+    li.setAttribute("data-id", String(item.id));
+
+    var check = document.createElement("input");
+    check.type = "checkbox";
+    check.checked = !!item.done;
+    check.title = item.done ? "标记为未完成" : "标记为已完成";
+    check.addEventListener("change", function () {
+      Store.toggleTodo(item.id);
+      renderTodos();
+    });
+    li.appendChild(check);
+
+    var body = document.createElement("div");
+    body.className = "todo-body";
+
+    if (editingId === item.id) {
+      var input = document.createElement("input");
+      input.type = "text";
+      input.className = "edit-input";
+      input.maxLength = 100;
+      input.value = item.title;
+      input.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") { event.preventDefault(); saveEdit(item.id); }
+        if (event.key === "Escape") { editingId = null; renderTodos(); }
+      });
+      body.appendChild(input);
+
+      var actions = document.createElement("div");
+      actions.className = "todo-actions";
+
+      var save = document.createElement("button");
+      save.type = "button";
+      save.className = "btn-icon";
+      save.textContent = "保存";
+      save.addEventListener("click", function () { saveEdit(item.id); });
+
+      var cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.className = "btn-icon";
+      cancel.textContent = "取消";
+      cancel.addEventListener("click", function () { editingId = null; renderTodos(); });
+
+      actions.appendChild(save);
+      actions.appendChild(cancel);
+      li.appendChild(body);
+      li.appendChild(actions);
+      setTimeout(function () { input.focus(); input.select(); }, 0);
+      return li;
+    }
+
+    var title = document.createElement("span");
+    title.className = "todo-title";
+    title.textContent = item.title;
+    title.title = "双击编辑";
+    title.addEventListener("dblclick", function () {
+      editingId = item.id;
+      renderTodos();
+    });
+
+    var date = document.createElement("span");
+    date.className = "todo-date";
+    date.textContent = formatDate(item.created_at);
+
+    body.appendChild(title);
+    body.appendChild(date);
+
+    var actionsNormal = document.createElement("div");
+    actionsNormal.className = "todo-actions";
+
+    var edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "btn-icon";
+    edit.textContent = "编辑";
+    edit.addEventListener("click", function () {
+      editingId = item.id;
+      renderTodos();
+    });
+
+    var remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "btn-icon danger";
+    remove.textContent = "删除";
+    remove.addEventListener("click", function () {
+      if (!window.confirm("删除这条任务？\n\n" + item.title)) return;
+      Store.removeTodo(item.id);
+      if (editingId === item.id) editingId = null;
+      setTodoMessage("已删除一条任务");
+      renderTodos();
+    });
+
+    actionsNormal.appendChild(edit);
+    actionsNormal.appendChild(remove);
+
+    li.appendChild(body);
+    li.appendChild(actionsNormal);
+    return li;
+  }
+
+  function saveEdit(id) {
+    var li = els.todoList.querySelector('[data-id="' + id + '"]');
+    if (!li) return;
+    var input = li.querySelector(".edit-input");
+    if (!input) return;
+    var title = input.value.trim();
+    if (!title) {
+      setTodoMessage("任务内容不能为空", true);
+      input.focus();
+      return;
+    }
+    Store.updateTodo(id, { title: title });
+    editingId = null;
+    setTodoMessage("已修改");
+    renderTodos();
+  }
+
+  function renderTodos() {
+    var items = Store.listTodos(query);
+    els.todoList.innerHTML = "";
+
+    if (!items.length) {
+      els.todoEmpty.hidden = false;
+      els.todoEmpty.textContent = query
+        ? "没有包含「" + query + "」的任务。"
+        : "还没有任务，先加一条吧。";
+    } else {
+      els.todoEmpty.hidden = true;
+      items.forEach(function (item) {
+        els.todoList.appendChild(todoNode(item));
+      });
+    }
+
+    var stats = Store.stats();
+    els.statAll.textContent = stats.all;
+    els.statOpen.textContent = stats.open;
+    els.statDone.textContent = stats.done;
+  }
+
+  els.todoForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var title = els.todoInput.value.trim();
+    if (!title) {
+      setTodoMessage("请输入任务内容", true);
+      els.todoInput.focus();
+      return;
+    }
+    Store.addTodo(title);
+    els.todoInput.value = "";
+    setTodoMessage("已添加");
+    renderTodos();
+    els.todoInput.focus();
+  });
+
+  els.searchInput.addEventListener("input", function () {
+    query = els.searchInput.value.trim();
+    renderTodos();
+  });
+
+  els.clearSearch.addEventListener("click", function () {
+    els.searchInput.value = "";
+    query = "";
+    renderTodos();
+    els.searchInput.focus();
+  });
+
+  /* ------------------------------------------------------------ 对话渲染 */
+
+  function welcomeNode() {
+    var box = document.createElement("div");
+    box.className = "welcome";
+    box.textContent = "你好，我是星尘助手。试试：加一条 明天交实验报告；查一下 实验；完成 实验；删除 实验。";
+    return box;
+  }
+
+  function messageNode(message) {
+    var row = document.createElement("div");
+    row.className = "msg " + message.role;
+
+    var bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = message.content;
+
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "msg-del";
+    del.title = "删除这条消息";
+    del.setAttribute("aria-label", "删除这条消息");
+    del.textContent = "×";
+    del.addEventListener("click", function () {
+      Store.removeMessage(message.id);
+      renderMessages();
+    });
+
+    if (message.role === "user") {
+      row.appendChild(del);
+      row.appendChild(bubble);
+    } else {
+      row.appendChild(bubble);
+      row.appendChild(del);
+    }
+    return row;
+  }
+
+  function renderMessages() {
+    var messages = Store.listMessages();
+    els.chatLog.innerHTML = "";
+    if (!messages.length) {
+      els.chatLog.appendChild(welcomeNode());
+      return;
+    }
+    messages.forEach(function (message) {
+      els.chatLog.appendChild(messageNode(message));
+    });
+    scrollChatBottom();
+  }
+
+  /* ---------------------------------------------------------------- 对话 */
+
+  function typingNode() {
+    var node = document.createElement("div");
+    node.className = "typing";
+    node.textContent = "正在思考…";
+    return node;
+  }
+
+  async function callAI(config) {
+    var history = Store.listMessages().slice(-10).map(function (message) {
+      return { role: message.role, content: message.content };
+    });
+    var url = (config.base || "https://open.bigmodel.cn/api/paas/v4").replace(/\/+$/, "") + "/chat/completions";
+    var response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + config.key
+      },
+      body: JSON.stringify({
+        model: config.model || "glm-4-flash",
+        messages: history,
+        temperature: 0.7
+      })
+    });
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+    var data = await response.json();
+    var content = data && data.choices && data.choices[0] &&
+      data.choices[0].message && data.choices[0].message.content;
+    if (!content) throw new Error("接口没有返回内容");
+    return String(content).trim();
+  }
+
+  async function answerFor(text) {
+    var config = aiConfig();
+    if (!config.key) {
+      return window.Assistant.reply(text);
+    }
+    try {
+      return await callAI(config);
+    } catch (error) {
+      var fallback = window.Assistant.reply(text);
+      return fallback + "\n\n（AI 接口没有连上：" + (error.message || "网络错误") + "，以上是本地助手的回答）";
+    }
+  }
+
+  async function sendMessage() {
+    var text = els.chatInput.value.trim();
+    if (!text || sending) return;
+
+    sending = true;
+    els.sendBtn.disabled = true;
+    els.chatInput.value = "";
+    els.chatInput.style.height = "auto";
+    setChatStatus("正在生成…");
+
+    Store.addMessage("user", text);
+    renderMessages();
+
+    var typing = typingNode();
+    els.chatLog.appendChild(typing);
+    scrollChatBottom();
+
+    try {
+      var answer = await answerFor(text);
+      typing.remove();
+      Store.addMessage("assistant", answer);
+      renderMessages();
+      renderTodos();
+      setChatStatus("");
+    } catch (error) {
+      typing.remove();
+      Store.addMessage("assistant", "出错了：" + (error.message || "请求失败"));
+      renderMessages();
+      setChatStatus("生成失败", true);
+    } finally {
+      sending = false;
+      els.sendBtn.disabled = false;
+      els.chatInput.focus();
+    }
+  }
+
+  els.sendBtn.addEventListener("click", sendMessage);
+
+  els.chatInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+    }
+  });
+
+  els.chatInput.addEventListener("input", function () {
+    els.chatInput.style.height = "auto";
+    els.chatInput.style.height = Math.min(els.chatInput.scrollHeight, 110) + "px";
+  });
+
+  els.clearChat.addEventListener("click", function () {
+    if (!Store.listMessages().length) return;
+    if (!window.confirm("清空全部对话记录？这个操作不能撤销。")) return;
+    Store.clearMessages();
+    renderMessages();
+    setChatStatus("对话已清空");
+  });
+
+  /* ---------------------------------------------------------------- 设置 */
+
+  function openSettings() {
+    var config = aiConfig();
+    els.aiBase.value = config.base;
+    els.aiKey.value = config.key;
+    els.aiModel.value = config.model;
+    if (typeof els.settingsDialog.showModal === "function") {
+      els.settingsDialog.showModal();
+    } else {
+      els.settingsDialog.setAttribute("open", "open");
+    }
+  }
+
+  function closeSettings() {
+    if (typeof els.settingsDialog.close === "function") {
+      els.settingsDialog.close();
+    } else {
+      els.settingsDialog.removeAttribute("open");
+    }
+  }
+
+  els.settingsBtn.addEventListener("click", openSettings);
+  els.aiClose.addEventListener("click", closeSettings);
+
+  els.aiSave.addEventListener("click", function () {
+    setSetting(AI_KEYS.base, els.aiBase.value.trim());
+    setSetting(AI_KEYS.key, els.aiKey.value.trim());
+    setSetting(AI_KEYS.model, els.aiModel.value.trim());
+    closeSettings();
+    setChatStatus(els.aiKey.value.trim() ? "已启用 AI 接口" : "已切换回本地助手");
+  });
+
+  els.aiClear.addEventListener("click", function () {
+    setSetting(AI_KEYS.base, "");
+    setSetting(AI_KEYS.key, "");
+    setSetting(AI_KEYS.model, "");
+    els.aiBase.value = "";
+    els.aiKey.value = "";
+    els.aiModel.value = "";
+    setChatStatus("已清除 AI 接口设置");
+  });
+
+  /* ---------------------------------------------------------------- 启动 */
+
+  function boot() {
+    if (!window.Store) {
+      setTodoMessage("浏览器禁用了本地存储，无法保存数据", true);
+      return;
+    }
+    renderTodos();
+    renderMessages();
+    els.todoInput.focus();
+  }
+
+  boot();
+})();
+
+</script>
+</body>
+</html>
